@@ -2,7 +2,6 @@ const {
   EmbedBuilder,
   PermissionFlagsBits,
 } = require('discord.js');
-const { createAuditLog } = require('./moderation');
 
 function getAuditLogChannelId() {
   return process.env.AUDIT_LOG_CHANNEL_ID ||
@@ -13,48 +12,20 @@ function getAuditLogChannelId() {
 
 async function sendAuditLog({
   guild,
-  title = '監査ログ',
+  title = 'ゲームログ',
   description = '',
   color = 0x5865f2,
   fields = [],
-  type = 'SYSTEM',
-  action = 'UNKNOWN',
-  actor = null,
-  target = null,
-  caseId = null,
-  channel = null,
-  message = null,
-  reason = null,
-  data = null,
+  action = 'PLAY',
 } = {}) {
   if (!guild) return false;
 
-  let dbId = null;
-  try {
-    dbId = createAuditLog({
-      guildId: guild.id,
-      type,
-      action,
-      actorId: actor?.id || null,
-      actorTag: actor?.tag || actor?.username || null,
-      targetId: target?.id || null,
-      targetTag: target?.tag || target?.username || null,
-      caseId,
-      channelId: channel?.id || null,
-      messageId: message?.id || null,
-      reason,
-      data,
-    });
-  } catch (error) {
-    console.error('❌ 監査ログDB保存エラー:', error);
-  }
-
   const channelId = getAuditLogChannelId();
-  if (!channelId) return Boolean(dbId);
+  if (!channelId) return false;
 
   try {
     const logChannel = await guild.channels.fetch(channelId);
-    if (!logChannel?.isTextBased()) return Boolean(dbId);
+    if (!logChannel?.isTextBased()) return false;
 
     const me = guild.members.me;
     if (me) {
@@ -62,26 +33,27 @@ async function sendAuditLog({
       if (!permissions?.has(PermissionFlagsBits.ViewChannel) ||
           !permissions?.has(PermissionFlagsBits.SendMessages) ||
           !permissions?.has(PermissionFlagsBits.EmbedLinks)) {
-        return Boolean(dbId);
+        return false;
       }
     }
 
     const embed = new EmbedBuilder()
       .setTitle(String(title).slice(0, 256))
       .setColor(color)
-      .setTimestamp();
+      .setTimestamp()
+      .setFooter({ text: `Game: ${String(action).slice(0, 64)}` });
 
     if (description) embed.setDescription(String(description).slice(0, 4096));
 
-    const safeFields = Array.isArray(fields) ? fields.filter(f => f?.name && f?.value)
-      .slice(0, 25).map(f => ({
-        name: String(f.name).slice(0, 256),
-        value: String(f.value).slice(0, 1024),
-        inline: Boolean(f.inline),
+    const safeFields = Array.isArray(fields) ? fields
+      .filter(field => field?.name && field?.value)
+      .slice(0, 25)
+      .map(field => ({
+        name: String(field.name).slice(0, 256),
+        value: String(field.value).slice(0, 1024),
+        inline: Boolean(field.inline),
       })) : [];
     if (safeFields.length) embed.addFields(safeFields);
-
-    if (caseId) embed.setFooter({ text: `Case #${caseId} / Audit #${dbId || '?'}` });
 
     await logChannel.send({
       embeds: [embed],
@@ -89,8 +61,8 @@ async function sendAuditLog({
     });
     return true;
   } catch (error) {
-    console.error('❌ 監査ログ送信エラー:', error);
-    return Boolean(dbId);
+    console.error('❌ ゲームログ送信エラー:', error);
+    return false;
   }
 }
 

@@ -6,15 +6,19 @@
   "author": "",
   "type": "commonjs",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=20 <27"
+  },
   "scripts": {
     "start": "node src/index.js",
     "deploy": "node src/deploy-commands.js",
     "check": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "test": "node scripts/verify-db.js",
     "db:check": "node src/utils/database.js",
     "db:backup": "DB_BACKUP_ON_START=true node src/utils/database.js"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "12.11.1",
     "discord.js": "^14.27.0",
     "dotenv": "^17.4.2"
   }

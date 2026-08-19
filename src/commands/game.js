@@ -73,12 +73,7 @@ module.exports = {
       message.createMessageComponentCollector({
         time: 120000,
 
-        filter: button => {
-          return (
-            button.user.id ===
-            interaction.user.id
-          );
-        }
+        filter: button => !button.customId.startsWith('gameplus:')
       });
 
     collector.on(
@@ -722,15 +717,31 @@ module.exports = {
     );
 
     /*
-     * Collector終了時には
-     * メッセージを変更しない。
+     * Collector終了時には、期限切れの操作を防ぐためUIを無効化する。
      */
     collector.on(
       'end',
-      () => {
+      async () => {
         console.log(
           `🎮 Game collector終了: ${interaction.user.tag}`
         );
+        try {
+          const current = await interaction.fetchReply();
+          const disabledRows = current.components.map(row => ({
+            type: row.type,
+            components: row.components.map(component => ({
+              type: component.type,
+              custom_id: component.customId,
+              label: component.label ?? undefined,
+              emoji: component.emoji ?? undefined,
+              style: component.style,
+              disabled: true,
+            })),
+          }));
+          await interaction.editReply({ components: disabledRows });
+        } catch (error) {
+          console.warn('⚠️ 期限切れゲームUIの無効化に失敗:', error.message);
+        }
       }
     );
   },

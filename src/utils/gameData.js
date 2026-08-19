@@ -3,9 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const dataDir =
-  path.join(
-    __dirname,
-    '../data'
+  path.resolve(
+    process.env.MABUSABA_DATA_DIR || path.join(__dirname, '../data')
   );
 
 if (!fs.existsSync(dataDir)) {
@@ -215,6 +214,10 @@ const recordGameTransaction =
 
       const after =
         before + points;
+
+      if (after < 0) {
+        throw new Error('ポイントが不足しているため、このゲームを実行できません。');
+      }
 
       let wins = 0;
       let losses = 0;
@@ -440,6 +443,7 @@ function adjustPoints({
 function getRanking(
   limit = 10
 ) {
+  const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 100);
   return db.prepare(`
     SELECT
       user_id,
@@ -455,7 +459,7 @@ function getRanking(
       games ASC
     LIMIT ?
   `).all(
-    limit
+    safeLimit
   );
 }
 
@@ -512,7 +516,7 @@ function getGameLogs({
   `;
 
   params.push(
-    limit
+    Math.min(Math.max(Number(limit) || 50, 1), 100)
   );
 
   return db
@@ -623,13 +627,14 @@ function getGlobalStats() {
 function getRecentLogs(
   limit = 20
 ) {
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
   return db.prepare(`
     SELECT *
     FROM game_logs
     ORDER BY created_at DESC
     LIMIT ?
   `).all(
-    limit
+    safeLimit
   );
 }
 
