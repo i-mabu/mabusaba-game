@@ -1,0 +1,21 @@
+{
+  "name": "mabusaba-game",
+  "version": "1.2.7",
+  "description": "Discord community bot with unified games, moderation cases, audit logs, safe database migration and backups",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js",
+    "check": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "db:check": "node src/utils/database.js",
+    "db:backup": "DB_BACKUP_ON_START=true node src/utils/database.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2"
+  }
+}
